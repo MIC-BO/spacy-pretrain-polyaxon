@@ -65,7 +65,17 @@ def report_progress(epoch, best, losses, scores):
 
 def load_textcat_data(is_final_result=False, limit=0):
     """Load data from the IMDB dataset."""
-    train_data, eval_data = thinc.extra.datasets.imdb()
+    data = list()
+    with open('dataset.csv') as f:
+        for line in f.read().splitlines():
+            label = int(line[:line.index(',')])
+            sentence = line[line.index(',') + 1:]
+            data.append((sentence, label))
+    random.shuffle(data)
+    cut = int(len(data) * 0.5)
+    train_data = data[:cut]
+    eval_data = data[cut + 1:]
+    # train_data, eval_data = thinc.extra.datasets.imdb()
     random.shuffle(train_data)
     if not is_final_result:
         # Partition off part of the train data for evaluation
@@ -74,8 +84,17 @@ def load_textcat_data(is_final_result=False, limit=0):
     train_data = train_data[-limit:]
     train_texts, train_labels = zip(*train_data)
     eval_texts, eval_labels = zip(*eval_data)
-    train_cats = [{"POSITIVE": bool(y), "NEGATIVE": not bool(y)} for y in train_labels]
-    eval_cats = [{"POSITIVE": bool(y), "NEGATIVE": not bool(y)} for y in eval_labels]
+    def __gen_dict_label(y):
+        d = dict()
+        for i in range(1, 5):
+            if y == i:
+                d[str(i)] = True
+            else:
+                d[str(i)] = False
+        return d
+
+    train_cats = [__gen_dict_label(y) for y in train_labels]
+    eval_cats = [__gen_dict_label(y) for y in eval_labels]
     return (train_texts, train_cats), (eval_texts, eval_cats)
 
 
@@ -96,11 +115,12 @@ def build_textcat_model(tok2vec, nr_class, width):
 
 
 def create_pipeline(lang, width, embed_size, vectors):
-    if vectors:
-        nlp = spacy.blank(lang)
-    else:
-        print("Load vectors", vectors)
-        nlp = spacy.load(vectors)
+    # if vectors:
+        # nlp = spacy.blank(lang)
+    # else:
+        # print("Load vectors", vectors)
+        # nlp = spacy.load(vectors)
+    nlp = spacy.blank(lang)
     print("Start training")
     tok2vec = Tok2Vec(
         width=width,
@@ -109,8 +129,8 @@ def create_pipeline(lang, width, embed_size, vectors):
     )
     textcat = TextCategorizer(
         nlp.vocab,
-        labels=["POSITIVE", "NEGATIVE"],
-        model=build_textcat_model(tok2vec, 2, width),
+        labels=['1', '2', '3', '4'],
+        model=build_textcat_model(tok2vec, 4, width),
     )
     nlp.add_pipe(textcat)
     return nlp
@@ -248,10 +268,11 @@ def main(
 ):
     opt_params = get_opt_params(locals())
     fix_random_seed(0)
-    use_gpu = prefer_gpu()
-    print("Using GPU?", use_gpu)
+    # use_gpu = prefer_gpu()
+    # print("Using GPU?", use_gpu)
 
-    nlp = create_pipeline('en', width, embed_size, vectors)
+    # nlp = create_pipeline('en', width, embed_size, vectors)
+    nlp = create_pipeline('en', width, embed_size, None)
     train_textcat(
         nlp,
         train_examples,
@@ -264,14 +285,14 @@ def main(
 
 
 if __name__ == "__main__":
-    try:
-        import polyaxon_helper
-        from polyaxon_helper import send_metrics
-        USE_TQDM = 0
-        args = polyaxon_helper.get_declarations()
-        print(args)
-        main(**args)
-    except ImportError:
-        USE_TQDM = True
-        send_metrics = lambda *args, **kwargs: None
-        plac.call(plac.annotations(**MAIN_ARGS)(main))
+    # try:
+        # import polyaxon_helper
+        # from polyaxon_helper import send_metrics
+        # USE_TQDM = 0
+        # args = polyaxon_helper.get_declarations()
+        # print(args)
+        # main(**args)
+    # except ImportError:
+    USE_TQDM = True
+    send_metrics = lambda *args, **kwargs: None
+    plac.call(plac.annotations(**MAIN_ARGS)(main))
