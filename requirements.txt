@@ -4,7 +4,6 @@ certifi==2019.3.9
 chardet==3.0.4
 clint==0.5.1
 cymem==2.0.2
-en-vectors-web-lg==2.1.0a0
 hestia==0.3.0
 idna==2.8
 Jinja2==2.10
