@@ -63,7 +63,7 @@ def report_progress(epoch, best, losses, scores):
     )
 
 
-def load_textcat_data(is_final_result=False, limit=0):
+def load_textcat_data(limit=1000, num_eval=5000):
     """Load data from the IMDB dataset."""
     data = list()
     with open('dataset.csv') as f:
@@ -71,17 +71,12 @@ def load_textcat_data(is_final_result=False, limit=0):
             label = int(line[:line.index(',')])
             sentence = line[line.index(',') + 1:]
             data.append((sentence, label))
-    random.shuffle(data)
-    cut = int(len(data) * 0.5)
-    train_data = data[:cut]
-    eval_data = data[cut + 1:]
     # train_data, eval_data = thinc.extra.datasets.imdb()
-    random.shuffle(train_data)
-    if not is_final_result:
-        # Partition off part of the train data for evaluation
-        eval_data = train_data[-5000:]
-        train_data = train_data[:-5000]
+    random.shuffle(data)
+    eval_data = data[-num_eval:]
+    train_data = data[:-num_eval]
     train_data = train_data[-limit:]
+
     train_texts, train_labels = zip(*train_data)
     eval_texts, eval_labels = zip(*eval_data)
     def __gen_dict_label(y):
@@ -134,12 +129,12 @@ def create_pipeline(lang, width, embed_size, vectors):
     return nlp
 
 
-def train_textcat(nlp, n_texts, opt_params, init_tok2vec=None, n_iter=10, dropout=0.2, batch_size=2):
+def train_textcat(nlp, num_train, num_eval, opt_params, init_tok2vec=None, n_iter=10, dropout=0.2, batch_size=2):
     textcat = nlp.get_pipe("textcat")
-    (train_texts, train_cats), (dev_texts, dev_cats) = load_textcat_data(limit=n_texts)
+    (train_texts, train_cats), (dev_texts, dev_cats) = load_textcat_data(limit=num_train, num_eval=num_eval)
     print(
-        "Using {} examples ({} training, {} evaluation)".format(
-            n_texts, len(train_texts), len(dev_texts)
+        "Number of examples ({} training, {} evaluation)".format(
+            len(train_texts), len(dev_texts)
         )
     )
     train_data = list(zip(train_texts, [{"cats": cats} for cats in train_cats]))
@@ -236,7 +231,8 @@ MAIN_ARGS = {
     "vectors": ("Pre-trained vectors", "option", "v", str),
     "init_tok2vec": ("Path to pre-trained weights", "option", "t2v", str),
     "train_iters": ("Number of iterations to pretrain", "option", "tn", int),
-    "train_examples": ("Number of labelled examples", "option", "eg", int),
+    "train_examples": ("Number of labelled examples to train the classifier", "option", "eg", int),
+    "eval_examples": ("Number of labelled examples to eval the classifier", "option", "ev", int),
     "batch_size": ("Batch_size for TC", "option", "bs", int),
     "dropout": ("Dropout for TC", "option", "do", float),
     "learn_rate": ("Learning rate for TC", "option", "lr", float),
@@ -255,6 +251,7 @@ def main(
     init_tok2vec=None,
     train_iters=30,
     train_examples=1000,
+    eval_examples=5000,
     batch_size=4,
     dropout=0.0,
     learn_rate=0.15,
@@ -274,6 +271,7 @@ def main(
     train_textcat(
         nlp,
         train_examples,
+        eval_examples,
         opt_params,
         dropout=dropout,
         batch_size=batch_size,
