@@ -115,17 +115,15 @@ def build_textcat_model(tok2vec, nr_class, width):
 
 
 def create_pipeline(lang, width, embed_size, vectors):
-    # if vectors:
-        # nlp = spacy.blank(lang)
-    # else:
-        # print("Load vectors", vectors)
-        # nlp = spacy.load(vectors)
-    nlp = spacy.blank(lang)
+    if vectors is None:
+        nlp = spacy.blank(lang)
+    else:
+        print("Load vectors", vectors)
+        nlp = spacy.load(vectors)
     print("Start training")
     tok2vec = Tok2Vec(
         width=width,
         embed_size=embed_size,
-        pretrained_vectors=vectors
     )
     textcat = TextCategorizer(
         nlp.vocab,
@@ -272,7 +270,7 @@ def main(
     # print("Using GPU?", use_gpu)
 
     # nlp = create_pipeline('en', width, embed_size, vectors)
-    nlp = create_pipeline('en', width, embed_size, None)
+    nlp = create_pipeline('en', width, embed_size, vectors)
     train_textcat(
         nlp,
         train_examples,
