@@ -265,11 +265,11 @@ def main(
     grad_norm_clip=1.0,
 ):
     opt_params = get_opt_params(locals())
+    random.seed(0)
     fix_random_seed(0)
-    # use_gpu = prefer_gpu()
-    # print("Using GPU?", use_gpu)
+    use_gpu = prefer_gpu()
+    print("Using GPU?", use_gpu)
 
-    # nlp = create_pipeline('en', width, embed_size, vectors)
     nlp = create_pipeline('en', width, embed_size, vectors)
     train_textcat(
         nlp,
@@ -283,14 +283,6 @@ def main(
 
 
 if __name__ == "__main__":
-    # try:
-        # import polyaxon_helper
-        # from polyaxon_helper import send_metrics
-        # USE_TQDM = 0
-        # args = polyaxon_helper.get_declarations()
-        # print(args)
-        # main(**args)
-    # except ImportError:
     USE_TQDM = True
     send_metrics = lambda *args, **kwargs: None
     plac.call(plac.annotations(**MAIN_ARGS)(main))
